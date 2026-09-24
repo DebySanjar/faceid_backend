@@ -7,9 +7,10 @@ python-dotenv==1.0.1
 passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.9
-deepface==0.0.92
 opencv-python-headless==4.10.0.84
 numpy==1.26.4
 Pillow==10.4.0
-tf-keras==2.16.0
+tensorflow-cpu==2.17.0
+tf-keras==2.17.0
+deepface==0.0.92
 pydantic-settings==2.3.4
