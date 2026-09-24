@@ -16,17 +16,6 @@ def admin_login(data: schemas.AdminLogin, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer"}
 
 
-@router.post("/create", summary="Birinchi admin yaratish (setup uchun)")
-def create_admin(data: schemas.AdminLogin, db: Session = Depends(get_db)):
-    existing = db.query(models.Admin).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Admin allaqachon mavjud")
-    admin = models.Admin(username=data.username, hashed_password=hash_password(data.password))
-    db.add(admin)
-    db.commit()
-    return {"message": "Admin yaratildi"}
-
-
-@router.get("/me")
+@app.get("/me")
 def get_me(admin=Depends(get_current_admin)):
     return {"username": admin.username, "id": admin.id}
