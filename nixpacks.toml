@@ -1,7 +1,6 @@
 [phases.setup]
 nixPkgs = [
   "libGL",
-  "libglib",
   "glib",
   "stdenv.cc.cc.lib",
 ]
