@@ -1,91 +1,90 @@
-# Tizim Backend — Face ID Davomat + CRM
+# Tizim Backend
 
-FastAPI + PostgreSQL + DeepFace
+FastAPI + MySQL (PythonAnywhere free) — Face ID davomat + CRM
+
+---
+
+## PythonAnywhere Deploy (Free Plan)
+
+### 1. Bash console'da repo clone qiling
+```bash
+git clone https://github.com/DebySanjar/faceid_backend.git ~/tizimBackend
+cd ~/tizimBackend
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. MySQL DB yarating
+Dashboard → **Databases** tab → MySQL:
+- DB nomi: `tizim_db` → to'liq: `USERNAME$tizim_db`
+- Parolni eslang
+
+### 3. `.env` fayl yarating
+```bash
+cp .env.example .env
+nano .env
+```
+Quyidagilarni to'ldiring:
+```
+DATABASE_URL=mysql+pymysql://USERNAME:DBPASSWORD@USERNAME.mysql.pythonanywhere-services.com/USERNAME$tizim_db
+SECRET_KEY=kamida-32-belgili-tasodifiy-kalit
+FACE_IMAGES_DIR=/home/USERNAME/tizimBackend/face_images
+```
+
+### 4. Jadvallarni yarating
+```bash
+cd ~/tizimBackend
+source .venv/bin/activate
+python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine); print('OK')"
+```
+
+### 5. Web app sozlang
+Dashboard → **Web** tab → **Add new web app**:
+- Manual configuration → Python 3.11
+- **Virtualenv**: `/home/USERNAME/tizimBackend/.venv`
+- **WSGI file** ni oching, hamma narsani o'chirib quyidagini yozing:
+
+```python
+import sys, os
+sys.path.insert(0, '/home/USERNAME/tizimBackend')
+os.chdir('/home/USERNAME/tizimBackend')
+from app.main import app as application
+```
+
+### 6. Reload qiling
+Web tab → **Reload** tugmasi
+
+### 7. Test qiling
+```
+https://USERNAME.pythonanywhere.com/docs
+```
+
+---
+
+## API asosiy endpointlar
+
+| Method | URL | Tavsif |
+|--------|-----|--------|
+| GET | / | Health check |
+| POST | /admin/login | Admin login |
+| GET | /students/ | Talabalar |
+| POST | /students/ | Talaba + rasm qo'shish |
+| GET | /students/embeddings-list | Flutter uchun rasm list |
+| GET | /students/{id}/face-image | Rasm preview |
+| POST | /attendance/check-in-by-id | Flutter davomat |
+| POST | /attendance/manual | Qo'lda davomat |
+| GET | /attendance/stats/summary | Dashboard stats |
+| GET | /groups/ | Guruhlar |
+| GET | /courses/ | Kurslar |
+| GET | /payments/ | To'lovlar |
 
 ---
 
 ## Lokal ishlatish
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # Linux/Mac
-
 pip install -r requirements.txt
-cp .env.example .env          # .env ni to'ldiring
+cp .env.example .env   # to'ldiring
 uvicorn app.main:app --reload --port 8000
 ```
-
-API docs: http://localhost:8000/docs
-
----
-
-## Railway Deploy
-
-### 1. Railway'da yangi project yarating
-- railway.app → New Project → Empty Project
-
-### 2. PostgreSQL qo'shing
-- Add Service → Database → PostgreSQL
-- Railway avtomatik `DATABASE_URL` environment variable yaratadi
-
-### 3. Backend deploy qiling
-- Add Service → GitHub Repo → tizimBackend repo tanlang
-- Settings → Root Directory: `/` (agar repo root bo'lsa)
-
-### 4. Environment variables qo'shing
-Railway dashboard → Variables:
-```
-SECRET_KEY=uzun-random-kalit-min-32-belgili
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-```
-`DATABASE_URL` Railway tomonidan avtomatik qo'shiladi (PostgreSQL service linked bo'lganda).
-
-### 5. Deploy
-Push qilganda avtomatik deploy bo'ladi.
-`railway.toml` start command ni boshqaradi.
-
-### 6. Birinchi admin yaratish
-Deploy tugagandan so'ng Railway → service → Shell:
-```bash
-python -c "
-from app.database import SessionLocal, Base, engine
-from app.models import Admin
-from app.auth import hash_password
-Base.metadata.create_all(bind=engine)
-db = SessionLocal()
-admin = Admin(username='admin', hashed_password=hash_password('parol'))
-db.add(admin); db.commit(); print('Admin yaratildi')
-"
-```
-
----
-
-## API Endpoints
-
-| Method | URL | Tavsif |
-|--------|-----|--------|
-| POST | /admin/login | Admin login |
-| POST | /admin/create | Birinchi admin (bir marta) |
-| GET | /students/ | Talabalar ro'yxati |
-| POST | /students/ | Talaba + yuz rasmi yuklash |
-| GET | /students/{id}/face-image | Talaba rasmi JPEG |
-| PUT | /students/{id}/face | Yuz rasmini yangilash |
-| GET | /groups/ | Guruhlar |
-| POST | /groups/ | Guruh yaratish |
-| GET | /courses/ | Kurslar |
-| GET | /teachers/ | O'qituvchilar |
-| GET | /rooms/ | Xonalar |
-| POST | /attendance/check-in | Face ID davomat |
-| POST | /attendance/manual | Qo'lda davomat |
-| GET | /attendance/stats/summary | Dashboard statistika |
-| GET | /payments/ | To'lovlar |
-| POST | /payments/ | To'lov qo'shish |
-
----
-
-## Rasm saqlash
-
-Rasmlar PostgreSQL `BYTEA` columnida saqlanadi — alohida storage server kerak emas.
-Admin panel: `GET /students/{id}/face-image` orqali preview ko'rsatiladi.

@@ -5,7 +5,8 @@ from datetime import date
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_admin
-from app.face_utils import image_bytes_to_jpeg
+from app.face_utils import save_face_image, read_face_image_base64, image_bytes_to_jpeg
+from app.config import settings
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -13,20 +14,21 @@ router = APIRouter(prefix="/students", tags=["Students"])
 @router.get("/embeddings-list", summary="Flutter uchun: id + base64 rasm ro'yxati")
 def embeddings_list(db: Session = Depends(get_db)):
     """Flutter app shu endpoint orqali rasmlarni yuklab local embedding chiqaradi."""
-    import base64
     students = db.query(models.Student).filter(
         models.Student.is_active == True,
-        models.Student.face_image_data.isnot(None),
+        models.Student.face_image_path.isnot(None),
     ).all()
-    return [
-        {
-            "id": s.id,
-            "full_name": s.full_name,
-            "student_id": s.student_id,
-            "face_image_data": base64.b64encode(s.face_image_data).decode(),
-        }
-        for s in students
-    ]
+    result = []
+    for s in students:
+        b64 = read_face_image_base64(s.face_image_path)
+        if b64:
+            result.append({
+                "id": s.id,
+                "full_name": s.full_name,
+                "student_id": s.student_id,
+                "face_image_data": b64,
+            })
+    return result
 
 
 @router.get("/", response_model=List[schemas.StudentDetail])
@@ -69,7 +71,7 @@ def create_student(
         raise HTTPException(status_code=400, detail="Bu ID raqamli talaba allaqachon mavjud")
 
     image_bytes = face_image.file.read()
-    jpeg_bytes = image_bytes_to_jpeg(image_bytes)
+    face_path = save_face_image(student_id, image_bytes, settings.face_images_abs)
 
     student = models.Student(
         full_name=full_name,
@@ -79,7 +81,7 @@ def create_student(
         birth_date=birth_date,
         address=address,
         group_id=group_id,
-        face_image_data=jpeg_bytes,   # DB'da saqlash
+        face_image_path=face_path,
     )
     db.add(student)
     db.commit()
@@ -127,7 +129,9 @@ def update_face(
     if not student:
         raise HTTPException(status_code=404, detail="Talaba topilmadi")
     image_bytes = face_image.file.read()
-    student.face_image_data = image_bytes_to_jpeg(image_bytes)
+    student.face_image_path = save_face_image(
+        student.student_id, image_bytes, settings.face_images_abs
+    )
     db.commit()
     db.refresh(student)
     return student
@@ -146,11 +150,14 @@ def delete_student(student_db_id: int, db: Session = Depends(get_db), _=Depends(
 @router.get("/{student_db_id}/face-image")
 def get_face_image(student_db_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):
     """Talaba yuz rasmini JPEG sifatida qaytaradi"""
-    from fastapi.responses import Response
+    from fastapi.responses import FileResponse
     student = db.query(models.Student).filter(models.Student.id == student_db_id).first()
-    if not student or not student.face_image_data:
+    if not student or not student.face_image_path:
         raise HTTPException(status_code=404, detail="Rasm topilmadi")
-    return Response(content=student.face_image_data, media_type="image/jpeg")
+    import os
+    if not os.path.exists(student.face_image_path):
+        raise HTTPException(status_code=404, detail="Rasm faylda topilmadi")
+    return FileResponse(student.face_image_path, media_type="image/jpeg")
 
 
 @router.get("/{student_db_id}/attendance", response_model=List[schemas.AttendanceOut])

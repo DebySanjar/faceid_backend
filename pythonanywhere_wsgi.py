@@ -1,17 +1,22 @@
 """
-PythonAnywhere WSGI config fayli.
-PythonAnywhere dashboard'da Web tab → WSGI configuration file ga shu faylni ko'rsating.
-Yoki shu faylni /var/www/yourusername_pythonanywhere_com_wsgi.py ga ko'chiring.
+PythonAnywhere WSGI fayli.
+
+Deploy qilish uchun:
+1. Bu faylni /var/www/USERNAME_pythonanywhere_com_wsgi.py ga ko'chiring
+   YOKI Web tab → WSGI configuration file yo'lini shu faylga o'zgartiring.
+2. USERNAME ni o'z username'ingiz bilan almashtiring.
 """
 import sys
 import os
 
-# Loyiha yo'lini Python path'ga qo'shish
-project_home = '/home/yourusername/tizimBackend'  # <-- o'zgartiring
-if project_home not in sys.path:
-    sys.path.insert(0, project_home)
+# ── Loyiha yo'li ──────────────────────────────────────────────────────────────
+PROJECT_HOME = '/home/USERNAME/tizimBackend'   # <── o'zgartiring
 
-# .env faylini yuklash
-os.chdir(project_home)
+if PROJECT_HOME not in sys.path:
+    sys.path.insert(0, PROJECT_HOME)
 
-from app.main import app as application  # noqa
+# .env faylini yuklash uchun ishchi papkani o'zgartirish
+os.chdir(PROJECT_HOME)
+
+# ── App import ────────────────────────────────────────────────────────────────
+from app.main import app as application  # noqa: E402

@@ -161,8 +161,13 @@ class StudentOut(BaseModel):
     address: Optional[str]
     group_id: Optional[int]
     is_active: bool
-    has_face: bool = False        # rasm bor/yo'qligini bildiradi
+    face_image_path: Optional[str] = None
     created_at: datetime
+
+    @property
+    def has_face(self) -> bool:
+        return bool(self.face_image_path)
+
     class Config:
         from_attributes = True
 

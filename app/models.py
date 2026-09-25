@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, Float, Text, Enum, Time, LargeBinary
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, Float, Text, Enum, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -113,8 +113,7 @@ class Student(Base):
     birth_date = Column(Date, nullable=True)
     address = Column(String(300), nullable=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
-    face_image_path = Column(String(500), nullable=True)   # eski (backward compat)
-    face_image_data = Column(LargeBinary, nullable=True)   # DB'da saqlash (Railway)
+    face_image_path = Column(String(500), nullable=True)   # disk'dagi yo'l
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
