@@ -10,6 +10,25 @@ from app.face_utils import image_bytes_to_jpeg
 router = APIRouter(prefix="/students", tags=["Students"])
 
 
+@router.get("/embeddings-list", summary="Flutter uchun: id + base64 rasm ro'yxati")
+def embeddings_list(db: Session = Depends(get_db)):
+    """Flutter app shu endpoint orqali rasmlarni yuklab local embedding chiqaradi."""
+    import base64
+    students = db.query(models.Student).filter(
+        models.Student.is_active == True,
+        models.Student.face_image_data.isnot(None),
+    ).all()
+    return [
+        {
+            "id": s.id,
+            "full_name": s.full_name,
+            "student_id": s.student_id,
+            "face_image_data": base64.b64encode(s.face_image_data).decode(),
+        }
+        for s in students
+    ]
+
+
 @router.get("/", response_model=List[schemas.StudentDetail])
 def list_students(
     group_id: Optional[int] = None,
@@ -65,10 +84,8 @@ def create_student(
     db.add(student)
     db.commit()
     db.refresh(student)
+    # face_image_data ni response ga qo'shmaslik (katta binary)
     return student
-
-
-@router.get("/{student_db_id}", response_model=schemas.StudentDetail)
 def get_student(student_db_id: int, db: Session = Depends(get_db), _=Depends(get_current_admin)):
     student = (
         db.query(models.Student)
@@ -134,6 +151,9 @@ def get_face_image(student_db_id: int, db: Session = Depends(get_db), _=Depends(
     if not student or not student.face_image_data:
         raise HTTPException(status_code=404, detail="Rasm topilmadi")
     return Response(content=student.face_image_data, media_type="image/jpeg")
+
+
+@router.get("/{student_db_id}/attendance", response_model=List[schemas.AttendanceOut])
 def student_attendance(
     student_db_id: int,
     month: Optional[str] = None,   # "2026-09"
