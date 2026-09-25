@@ -65,7 +65,53 @@ def face_check_in(data: schemas.FaceCheckIn, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/manual", summary="Admin qo'lda davomat belgilash")
+@router.post("/check-in-by-id", summary="Flutter ML Kit — student id orqali davomat")
+def check_in_by_id(data: schemas.CheckInById, db: Session = Depends(get_db)):
+    """
+    Flutter ML Kit yuz aniqladi → faqat student_db_id va confidence yuboradi.
+    Server faqat DB operatsiyasi qiladi.
+    """
+    student = db.query(models.Student).filter(
+        models.Student.id == data.student_db_id,
+        models.Student.is_active == True,
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Talaba topilmadi")
+
+    today = date.today()
+    existing = db.query(models.Attendance).filter(
+        models.Attendance.student_id == student.id,
+        models.Attendance.date == today,
+    ).first()
+
+    if existing:
+        return {
+            "already_marked": True,
+            "message": "Davomat allaqachon belgilangan",
+            "student_name": student.full_name,
+            "student_id": student.student_id,
+            "confidence": data.confidence,
+        }
+
+    attendance = models.Attendance(
+        student_id=student.id,
+        date=today,
+        confidence=data.confidence,
+        marked_by_admin=False,
+    )
+    db.add(attendance)
+    db.commit()
+
+    return {
+        "already_marked": False,
+        "message": "Davomat muvaffaqiyatli belgilandi",
+        "student_name": student.full_name,
+        "student_id": student.student_id,
+        "confidence": data.confidence,
+    }
+
+
+
 def manual_check_in(data: schemas.AttendanceManual, db: Session = Depends(get_db), _=Depends(get_current_admin)):
     student = db.query(models.Student).filter(models.Student.id == data.student_id).first()
     if not student:

@@ -182,14 +182,19 @@ class AttendanceOut(BaseModel):
     class Config:
         from_attributes = True
 
+class FaceCheckIn(BaseModel):
+    """Face ID orqali davomat (eski)"""
+    image_base64: str
+
 class AttendanceManual(BaseModel):
     """Admin qo'lda davomat belgilash"""
     student_id: int
     date: date
 
-class FaceCheckIn(BaseModel):
-    """Face ID orqali davomat"""
-    image_base64: str
+class CheckInById(BaseModel):
+    """Flutter ML Kit — faqat student id va confidence yuboriladi"""
+    student_db_id: int
+    confidence: float
 
 
 # ─── Payment ──────────────────────────────────────────────
